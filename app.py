@@ -6,6 +6,8 @@ from io import BytesIO
 import pytesseract
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import os
+import json
 
 app = Flask(__name__)
 
@@ -38,7 +40,9 @@ def parse_receipt_text(text):
 
 def save_to_sheet(text):
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    creds_json = os.getenv("GOOGLE_CREDS_JSON")
+    creds_dict = json.loads(creds_json)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
     sheet = client.open("Catatan Keuangan").sheet1
     sheet.append_row([text])
