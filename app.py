@@ -13,6 +13,23 @@ app = Flask(__name__)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+    from twilio.twiml.messaging_response import MessagingResponse
+
+    num_media = int(request.form.get("NumMedia", 0))
+    resp = MessagingResponse()
+
+    if num_media > 0:
+        media_url = request.form.get("MediaUrl0")
+        text = extract_text_from_image(media_url)
+        append_to_sheet(text)
+        resp.message(f"Teks dari gambar berhasil diekstrak dan disimpan!\n\n{text[:300]}...")
+    else:
+        resp.message("Silakan kirim foto struk belanja untuk diproses.")
+
+    return str(resp)
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
     data = request.form
     media_url = data.get("MediaUrl0")
     from_number = data.get("From")
@@ -29,6 +46,12 @@ def webhook():
 
     return "Gambar tidak ditemukan."
 
+def extract_text_from_image(image_url):
+    response = requests.get(image_url)
+    img = Image.open(BytesIO(response.content))
+    text = pytesseract.image_to_string(img)
+    return text
+
 def parse_receipt_text(text):
     lines = text.split("\n")
     total = ""
@@ -37,6 +60,18 @@ def parse_receipt_text(text):
             total = line
             break
     return text + "\nTotal: " + total
+
+def append_to_sheet(text):
+    sheet_id = '1Cgjj8fPBsBWVU3ICSOYVfbeKn4WPLZZnYh7JqZxd5Yk'
+    range_name = 'Catatan Keuangan'
+    values = [[text]]
+    body = {"values": values}
+    sheets_service.spreadsheets().values().append(
+        spreadsheetId=sheet_id,
+        range=range_name,
+        valueInputOption="RAW",
+        body=body
+    ).execute()
 
 def save_to_sheet(text):
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
