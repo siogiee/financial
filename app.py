@@ -28,24 +28,6 @@ def webhook():
 
     return str(resp)
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    data = request.form
-    media_url = data.get("MediaUrl0")
-    from_number = data.get("From")
-
-    if media_url:
-        img_response = requests.get(media_url)
-        img = Image.open(BytesIO(img_response.content))
-
-        text = pytesseract.image_to_string(img)
-        parsed = parse_receipt_text(text)
-        save_to_sheet(parsed)
-
-        return f"Tersimpan:\n{parsed}"
-
-    return "Gambar tidak ditemukan."
-
 def extract_text_from_image(image_url):
     response = requests.get(image_url)
     img = Image.open(BytesIO(response.content))
