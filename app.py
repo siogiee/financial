@@ -1,68 +1,59 @@
-
 from flask import Flask, request
 import requests
 from PIL import Image
 from io import BytesIO
-import pytesseract
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import os
-import json
+import pytesseract 
+import gspread 
+from oauth2client.service_account import ServiceAccountCredentials 
 
 app = Flask(__name__)
 
-@app.route("/webhook", methods=["POST"])
+@app.route('/webhook', methods=['POST'])
 def webhook():
-    from twilio.twiml.messaging_response import MessagingResponse
+    data = request.form  # Ambil data form yang dikirim oleh Twilio
+    
+    # Cek apakah ada media dalam pesan 
+    if 'MediaContentType0' in data:  # Pastikan ada konten media 
+        media_url = data['MediaUrl0']  # Ambil URL media pertama
+        
+        text_result = extract_text_from_image(media_url)  
+        
+        if text_result:  
+            update_sheet(text_result)  # Kirim hasil ke Google Sheets
+            
+        return "Success", 200
+    
+    return "No Media Found", 400
 
-    num_media = int(request.form.get("NumMedia", 0))
-    resp = MessagingResponse()
+def extract_text_from_image(media_url):
+    response = requests.get(media_url)
+    
+    if response.status_code == 200:
+        try:
+            img = Image.open(BytesIO(response.content))
+            text = pytesseract.image_to_string(img)
+            return text.strip()  # Kembalikan teks tanpa spasi tambahan 
+        except Exception as e:
+            print(f"Error opening image: {e}")
+            return None
+    
+    print(f"Failed to retrieve image, status code: {response.status_code}")
+    return None
 
-    if num_media > 0:
-        media_url = request.form.get("MediaUrl0")
-        text = extract_text_from_image(media_url)
-        append_to_sheet(text)
-        resp.message(f"Teks dari gambar berhasil diekstrak dan disimpan!\n\n{text[:300]}...")
-    else:
-        resp.message("Silakan kirim foto struk belanja untuk diproses.")
+def setup_google_sheets():
+    scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+             "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+    
+    creds = ServiceAccountCredentials.from_json_keyfile_name('path_to_your_credentials.json', scope)  
+   
+   client = gspread.authorize(creds)  
+   sheet = client.open("Your Sheet Name").sheet1  
+    
+   return sheet
 
-    return str(resp)
+def update_sheet(text):
+   sheet = setup_google_sheets()
+   sheet.append_row([text])  
 
-def extract_text_from_image(image_url):
-    response = requests.get(image_url)
-    img = Image.open(BytesIO(response.content))
-    text = pytesseract.image_to_string(img)
-    return text
-
-def parse_receipt_text(text):
-    lines = text.split("\n")
-    total = ""
-    for line in lines:
-        if 'total' in line.lower():
-            total = line
-            break
-    return text + "\nTotal: " + total
-
-def append_to_sheet(text):
-    sheet_id = '1Cgjj8fPBsBWVU3ICSOYVfbeKn4WPLZZnYh7JqZxd5Yk'
-    range_name = 'Catatan Keuangan'
-    values = [[text]]
-    body = {"values": values}
-    sheets_service.spreadsheets().values().append(
-        spreadsheetId=sheet_id,
-        range=range_name,
-        valueInputOption="RAW",
-        body=body
-    ).execute()
-
-def save_to_sheet(text):
-    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds_json = os.getenv("GOOGLE_CREDS_JSON")
-    creds_dict = json.loads(creds_json)
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
-    sheet = client.open("Catatan Keuangan").sheet1
-    sheet.append_row([text])
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+if __name__ == '__main__':
+    app.run(debug=True)
