@@ -41,11 +41,12 @@ def extract_text_from_image(media_url):
     return None
 
 def setup_google_sheets():
-    scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+   scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
          "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
 
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)  
-   
+   creds_dict = {}   # Gantilah ini dengan cara membaca kredensial sesuai kebutuhan (misalnya dari file atau variabel lingkungan)
+   creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+
    client = gspread.authorize(creds)  
    sheet = client.open("Catatan Keuangan").sheet1  
     
@@ -56,4 +57,4 @@ def update_sheet(text):
    sheet.append_row([text])  
 
 if __name__ == '__main__':
-    app.run(debug=True)
+     app.run(debug=True)
