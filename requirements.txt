@@ -6,4 +6,3 @@ pytesseract
 Pillow
 gspread
 oauth2client
-plaintext
