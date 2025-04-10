@@ -42,12 +42,12 @@ def extract_text_from_image(media_url):
 
 def setup_google_sheets():
     scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-             "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
-    
-    creds = ServiceAccountCredentials.from_json_keyfile_name('path_to_your_credentials.json', scope)  
+         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)  
    
    client = gspread.authorize(creds)  
-   sheet = client.open("Your Sheet Name").sheet1  
+   sheet = client.open("Catatan Keuangan").sheet1  
     
    return sheet
 
