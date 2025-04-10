@@ -1,7 +1,10 @@
 
 Flask
-requests
+twilio
+google-api-python-client
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
 pytesseract
 Pillow
-gspread
-oauth2client
+opencv-python
